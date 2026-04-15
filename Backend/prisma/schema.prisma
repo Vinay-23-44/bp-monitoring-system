@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  //output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model User {
+  id            String               @id @default(uuid()) @db.Uuid
+  name          String
+  email         String               @unique
+  password      String
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  
+  //relations to user
+  healthProfile   HealthProfile[]
+  bloodPressures BloodPressure[]
+  medications    MedicationSchedule[]
+  consultations  ConsultationRequest[]
+  
+}
+
+model HealthProfile {
+  id              Int      @id @default(autoincrement())
+
+  // Basic Info
+  age             Int?
+  gender          String?   // "male", "female", "other"
+
+  // Body Metrics
+  weight          Float?    // kg
+  height          Float?    // cm
+
+  // Lifestyle
+  isSmoker        Boolean?
+  alcoholUse      String?   // "none", "occasionally", "frequent"
+  exerciseFrequency Int?    // days per week
+  exerciseTypes   String[]  // ["walking", "gym"]
+  sleepHours      Float?    // per day
+  waterIntake     Float?    // liters/day
+   
+  // Diet
+  dietType        String?   // "veg", "non-veg", "vegan"
+  junkFoodLevel   String?   // "low", "medium", "high"
+  
+  
+  // Mental Health
+  stressLevel     Int?      // 1–10
+  sleepQuality    String?   // "good", "poor"
+
+  // Medical
+  medicalConditions String[] // ["diabetes", "hypertension"]
+  familyHistory     String[] // ["heart_disease"]
+
+  // Goal
+  healthGoal      String?   // "weight_loss", "bp_control"
+
+  userId          String   @unique @db.Uuid
+  user            User     @relation(fields: [userId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+
+model BloodPressure {
+  id         Int      @id @default(autoincrement())
+  systolic   Int
+  diastolic  Int
+  createdAt  DateTime @default(now())
+
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model MedicationSchedule {
+  id          Int      @id @default(autoincrement())
+  medicineName String
+  dosage      String
+  time        String   // e.g. "08:00 AM"
+  isActive    Boolean  @default(true)
+
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id])
+
+  logs        MedicationLog[]
+
+  createdAt   DateTime @default(now())
+  updatedAt     DateTime @default(now())
+}
+
+model MedicationLog {
+  id            Int      @id @default(autoincrement())
+  taken         Boolean  @default(false)
+  scheduledTime DateTime
+  takenAt       DateTime?
+  reminderSent   Boolean  @default(false)
+  isMissed       Boolean  @default(false)
+
+  medicationId  Int
+  medication    MedicationSchedule @relation(fields: [medicationId], references: [id])
+
+  createdAt     DateTime @default(now())
+  @@unique([medicationId, scheduledTime])
+}
+
+model ConsultationRequest {
+  id              Int      @id @default(autoincrement())
+  doctorName      String
+  doctorSpecialty String
+  patientMessage  String
+  symptoms        String?
+  preferredDate   DateTime?
+  status          String   @default("pending")
+  doctorReply     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id])
+}
